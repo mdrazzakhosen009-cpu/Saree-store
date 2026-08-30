@@ -275,7 +275,8 @@ app.post('/admin/password', requireAdmin, async (req, res) => {
         res.render('admin/password', { message: 'Failed to update password' });
     }
 });
-  
+
+});
 
 app.get('/admin/settings', requireAdmin, async (req, res) => {
     try {
