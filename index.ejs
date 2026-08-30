@@ -1,0 +1,47 @@
+<%- include('partials/header') %>
+<!-- Hero Section -->
+<section class="relative bg-gray-900 text-white py-24 px-4 bg-cover bg-center" style="background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1600');">
+    <div class="max-w-4xl mx-auto text-center space-y-6">
+        <h1 class="text-4xl md:text-6xl font-serif font-bold tracking-wide">Exquisite Traditional Sarees</h1>
+        <p class="text-lg text-gray-200">Discover handloom Jamdani, Katan, and Banarasi masterpieces crafted for elegance.</p>
+        <div>
+            <a href="/shop" class="bg-primary text-white px-8 py-3 rounded-full font-bold shadow-lg hover:opacity-95 transition">Explore Collection</a>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Products -->
+<main class="max-w-7xl mx-auto px-4 py-12">
+    <h2 class="text-2xl md:text-3xl font-serif font-bold mb-8 text-center">Featured Collection</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        <% featured.forEach(product => { %>
+            <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 flex flex-col justify-between hover:shadow-xl transition">
+                <a href="/product/<%= product.id %>">
+                    <img src="<%= product.image %>" alt="<%= product.name %>" class="w-full h-72 object-cover">
+                </a>
+                <div class="p-4 flex flex-col flex-1 justify-between">
+                    <div>
+                        <span class="text-xs text-primary font-bold uppercase tracking-wider"><%= product.category %></span>
+                        <h3 class="font-bold text-gray-900 mt-1 line-clamp-1"><%= product.name %></h3>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between">
+                        <div>
+                            <span class="text-lg font-bold text-primary">৳<%= product.price %></span>
+                            <% if(product.old_price > product.price) { %>
+                                <span class="text-xs text-gray-400 line-through ml-1">৳<%= product.old_price %></span>
+                            <% } %>
+                        </div>
+                        <form action="/cart/add" method="POST">
+                            <input type="hidden" name="id" value="<%= product.id %>">
+                            <input type="hidden" name="name" value="<%= product.name %>">
+                            <input type="hidden" name="price" value="<%= product.price %>">
+                            <input type="hidden" name="image" value="<%= product.image %>">
+                            <button type="submit" class="bg-primary text-white px-3 py-1.5 rounded-lg text-sm hover:opacity-90"><i class="fa fa-shopping-cart"></i></button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        <% }) %>
+    </div>
+</main>
+<%- include('partials/footer') %>

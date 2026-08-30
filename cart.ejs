@@ -1,0 +1,43 @@
+<%- include('partials/header') %>
+<main class="max-w-7xl mx-auto px-4 py-12">
+    <h1 class="text-3xl font-serif font-bold mb-8">Shopping Cart</h1>
+    <% if(cart.length === 0) { %>
+        <div class="text-center py-16 bg-white rounded-2xl shadow-sm border">
+            <p class="text-gray-500 mb-4">Your cart is currently empty.</p>
+            <a href="/shop" class="bg-primary text-white px-6 py-2.5 rounded-xl font-bold">Start Shopping</a>
+        </div>
+    <% } else { %>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-4">
+                <% cart.forEach(item => { %>
+                    <div class="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border">
+                        <div class="flex items-center space-x-4">
+                            <img src="<%= item.image %>" class="w-16 h-16 object-cover rounded-lg">
+                            <div>
+                                <h3 class="font-bold text-gray-900"><%= item.name %></h3>
+                                <p class="text-primary text-sm font-bold">৳<%= item.price %></p>
+                            </div>
+                        </div>
+                        <form action="/cart/update" method="POST" class="flex items-center space-x-2">
+                            <input type="hidden" name="id" value="<%= item.id %>">
+                            <input type="number" name="qty" value="<%= item.qty %>" min="1" class="w-16 border rounded-lg px-2 py-1 text-center" onchange="this.form.submit()">
+                        </form>
+                    </div>
+                <% }) %>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border h-fit">
+                <h3 class="text-lg font-bold mb-4">Order Summary</h3>
+                <div class="flex justify-between py-2 border-b">
+                    <span>Subtotal</span>
+                    <span class="font-bold">৳<%= cart.reduce((s, i) => s + (i.price * i.qty), 0) %></span>
+                </div>
+                <div class="flex justify-between py-2 mb-4">
+                    <span>Shipping</span>
+                    <span class="font-bold">Calculated at Checkout</span>
+                </div>
+                <a href="/checkout" class="block text-center bg-primary text-white py-3 rounded-xl font-bold shadow-md hover:opacity-95">Proceed to Checkout</a>
+            </div>
+        </div>
+    <% } %>
+</main>
+<%- include('partials/footer') %>
