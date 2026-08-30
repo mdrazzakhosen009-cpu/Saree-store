@@ -254,7 +254,8 @@ app.get('/admin/logout', (req, res) => {
 const requireAdmin = (req, res, next) => {
   if (!req.session.admin) return res.redirect('/admin/login');
   next();
-};app.get('/admin/settings', requireAdmin, (req, res) => {
+};
+app.get('/admin/settings', requireAdmin, (req, res) => {
     res.render('admin/settings');
 });
           
