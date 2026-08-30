@@ -223,6 +223,33 @@ app.get('/track', async (req, res) => {
 
 
 // --- Admin Routes ---
+const requireAdmin = (req, res, next) => {
+    if (!req.session || !req.session.admin) {
+        return res.redirect('/admin/login');
+    }
+    next();
+};
+
+app.get('/admin/password', requireAdmin, (req, res) => {
+    res.render('admin/password', { message: null });
+});
+
+app.post('/admin/password', requireAdmin, async (req, res) => {
+    try {
+        const { new_password } = req.body;
+        if (new_password && new_password.trim() !== '') {
+            const hashedPassword = await bcrypt.hash(new_password, 10);
+            await db.execute({
+                sql: 'UPDATE admin SET password = ? WHERE id = 1',
+                args: [hashedPassword]
+            });
+        }
+        res.render('admin/password', { message: 'Password updated successfully!' });
+    } catch (err) {
+        console.error(err);
+        res.render('admin/password', { message: 'Failed to update password' });
+    }
+});
 
 app.get('/admin/login', (req, res) => {
   res.render('admin/login', { error: null });
