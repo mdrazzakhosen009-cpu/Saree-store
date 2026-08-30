@@ -275,12 +275,7 @@ app.post('/admin/login', async (req, res) => {
 });
 
 app.get('/admin/logout', (req, res) => {
-  req.session.admin = null;
-  res.redirect('/admin/login');
-const requireAdmin = (req, res, next) => {
-    if (!req.session || !req.session.admin) {
-        return res.redirect('/admin/login');
-    }
+  
     next();
 };
 
