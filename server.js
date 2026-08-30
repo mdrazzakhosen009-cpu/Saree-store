@@ -266,19 +266,36 @@ app.get('/admin/settings', requireAdmin, async (req, res) => {
     }
 });
 
-app.post('/admin/settings', requireAdmin, async (req, res) => {
+app.post('/admin/settings', requireAdmin, upload.single('store_logo_file'), async (req, res) => {
     try {
-        const { store_name, theme_color, delivery_time, store_info, chat_order_prompt } = req.body;
+        const { store_name, theme_color, delivery_time, store_info, chat_order_prompt, new_password } = req.body;
         
+        const current = await db.execute('SELECT * FROM settings LIMIT 1');
+        let logoPath = current.rows[0] ? current.rows[0].store_logo : '/uploads/default-logo.png';
+        
+        if (req.file) {
+            logoPath = `/uploads/${req.file.filename}`;
+        }
+
+        if (new_password && new_password.trim() !== '') {
+            const hashedPassword = await bcrypt.hash(new_password, 10);
+            await db.execute({
+                sql: 'UPDATE admin SET password = ? WHERE id = 1',
+                args: [hashedPassword]
+            });
+        }
+
         await db.execute({
-            sql: 'UPDATE settings SET store_name = ?, theme_color = ?, delivery_time = ?, store_info = ?, chat_order_prompt = ? WHERE id = 1',
-            args: [store_name, theme_color, delivery_time, store_info, chat_order_prompt]
+            sql: 'UPDATE settings SET store_name = ?, store_logo = ?, theme_color = ?, delivery_time = ?, store_info = ?, chat_order_prompt = ? WHERE id = 1',
+            args: [store_name, logoPath, theme_color, delivery_time, store_info, chat_order_prompt]
         });
 
-        res.render('admin/settings', { settings: req.body, message: 'Settings updated successfully!' });
+        const updatedResult = await db.execute('SELECT * FROM settings LIMIT 1');
+        res.render('admin/settings', { settings: updatedResult.rows[0] || {}, message: 'Settings updated successfully!' });
     } catch (err) {
         console.error(err);
-        res.render('admin/settings', { settings: req.body, message: 'Failed to update settings' });
+        const currentResult = await db.execute('SELECT * FROM settings LIMIT 1').catch(() => ({ rows: [{}] }));
+        res.render('admin/settings', { settings: currentResult.rows[0] || {}, message: 'Failed to update settings' });
     }
 });
 
