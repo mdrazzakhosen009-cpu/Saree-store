@@ -248,8 +248,7 @@ app.post('/admin/login', async (req, res) => {
 app.get('/admin/logout', (req, res) => {
   req.session.admin = null;
   res.redirect('/admin/login');
-  app.get('/admin/password', requireAdmin, (req, res) => {
-  app.get('/admin/password', requireAdmin, (req, res) => {
+app.get('/admin/password', requireAdmin, (req, res) => {
     res.render('admin/password', { message: null });
 });
 
