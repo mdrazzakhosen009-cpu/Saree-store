@@ -165,6 +165,56 @@ app.post('/admin/ai-assistant', requireAdmin, async (req, res) => {
     const settings = await db.execute('SELECT * FROM settings LIMIT 1');
     res.render('admin/ai-assistant', { responseMessage: msg, generatedDesign: `Applied Theme Color: ${color}`, settings: settings.rows[0] || {} });
 });
+// Separate Admin Feature Routes
+app.get('/admin/ai-agent', requireAdmin, async (req, res) => {
+    const settings = await db.execute('SELECT * FROM settings LIMIT 1');
+    res.render('admin/ai-agent', { message: null, settings: settings.rows[0] || {} });
+});
 
+app.get('/admin/payment-settings', requireAdmin, async (req, res) => {
+    const settings = await db.execute('SELECT * FROM settings LIMIT 1');
+    res.render('admin/payment-settings', { message: null, settings: settings.rows[0] || {} });
+});
+app.post('/admin/payment-settings', requireAdmin, async (req, res) => {
+    const { bkash_number, bkash_type, nagad_number, nagad_type, rocket_number, rocket_type } = req.body;
+    await db.execute({
+        sql: `UPDATE settings SET bkash_number = ?, bkash_type = ?, nagad_number = ?, nagad_type = ?, rocket_number = ?, rocket_type = ? WHERE id = 1`,
+        args: [bkash_number, bkash_type, nagad_number, nagad_type, rocket_number, rocket_type]
+    });
+    const updated = await db.execute('SELECT * FROM settings LIMIT 1');
+    res.render('admin/payment-settings', { message: 'Payment settings updated successfully!', settings: updated.rows[0] });
+});
+
+app.get('/admin/logo-design', requireAdmin, async (req, res) => {
+    const settings = await db.execute('SELECT * FROM settings LIMIT 1');
+    res.render('admin/logo-design', { message: null, settings: settings.rows[0] || {} });
+});
+app.post('/admin/logo-design', requireAdmin, upload.single('store_logo'), async (req, res) => {
+    const { theme_color } = req.body;
+    const current = await db.execute('SELECT * FROM settings LIMIT 1');
+    let logoPath = req.file ? `/uploads/${req.file.filename}` : (current.rows[0]?.store_logo || '');
+    await db.execute({
+        sql: `UPDATE settings SET store_logo = ?, theme_color = ? WHERE id = 1`,
+        args: [logoPath, theme_color]
+    });
+    const updated = await db.execute('SELECT * FROM settings LIMIT 1');
+    res.render('admin/logo-design', { message: 'Logo & Design updated successfully!', settings: updated.rows[0] });
+});
+
+app.get('/admin/chatbot-settings', requireAdmin, async (req, res) => {
+    const settings = await db.execute('SELECT * FROM settings LIMIT 1');
+    res.render('admin/chatbot-settings', { message: null, settings: settings.rows[0] || {} });
+});
+app.post('/admin/chatbot-settings', requireAdmin, async (req, res) => {
+    const { delivery_time, store_info, chat_order_prompt } = req.body;
+    await db.execute({
+        sql: `UPDATE settings SET delivery_time = ?, store_info = ?, chat_order_prompt = ? WHERE id = 1`,
+        args: [delivery_time, store_info, chat_order_prompt]
+    });
+    const updated = await db.execute('SELECT * FROM settings LIMIT 1');
+    res.render('admin/chatbot-settings', { message: 'Chatbot settings updated successfully!', settings: updated.rows[0] });
+});
+
+      
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
                     
