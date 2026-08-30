@@ -29,6 +29,19 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
 }));
+app.use(async (req, res, next) => {
+    try {
+        let cart = req.session.cart || [];
+        res.locals.cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+        
+        const settingsResult = await db.execute('SELECT * FROM settings LIMIT 1');
+        res.locals.settings = settingsResult.rows[0] || {};
+    } catch (err) {
+        res.locals.cartCount = 0;
+        res.locals.settings = {};
+    }
+    next();
+});
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
