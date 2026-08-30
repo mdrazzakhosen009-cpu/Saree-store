@@ -249,6 +249,7 @@ app.get('/admin/logout', (req, res) => {
   req.session.admin = null;
   res.redirect('/admin/login');
   app.get('/admin/password', requireAdmin, (req, res) => {
+  app.get('/admin/password', requireAdmin, (req, res) => {
     res.render('admin/password', { message: null });
 });
 
@@ -269,8 +270,8 @@ app.post('/admin/password', requireAdmin, async (req, res) => {
         console.error(err);
         res.render('admin/password', { message: 'Failed to update password' });
     }
-  
 });
+
 
 const requireAdmin = (req, res, next) => {
   if (!req.session.admin) return res.redirect('/admin/login');
