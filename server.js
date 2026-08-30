@@ -110,13 +110,22 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
 });
 
 app.post('/admin/products/add', requireAdmin, upload.single('image'), async (req, res) => {
-  const { name, category, price, old_price, description, is_featured } = req.body;
-  const image = req.file ? `/uploads/${req.file.filename}` : '/uploads/default.jpg';
-  await db.execute({
-    sql: 'INSERT INTO products (name, category, price, old_price, image, description, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    args: [name, category, parseFloat(price) || 0, parseFloat(old_price) || 0, image, description, is_featured ? 1 : 0]
-  });
-  res.redirect('/admin/products');
+    try {
+        const { name, category, price, old_price, description, is_featured } = req.body;
+        const image = req.file ? `/uploads/${req.file.filename}` : '/uploads/default.jpg';
+        const featuredValue = is_featured ? 1 : 0;
+        
+        await db.execute({
+            sql: 'INSERT INTO products (name, category, price, old_price, image, description, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            args: [name, category, parseFloat(price) || 0, parseFloat(old_price) || 0, image, description || '', featuredValue]
+        });
+        res.redirect('/admin/products');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error: ' + err.message);
+    }
+});
+
 });
 
 app.post('/admin/products/delete/:id', requireAdmin, async (req, res) => {
