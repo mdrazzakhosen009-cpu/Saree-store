@@ -1,88 +1,55 @@
-<!-- AI Shopping Assistant Floating Widget -->
-<div id="ai-chat-widget" class="fixed bottom-5 right-5 z-50">
-    <button onclick="toggleChat()" class="bg-primary text-white p-4 rounded-full shadow-2xl hover:opacity-95 transition flex items-center justify-center">
-        <i class="fa fa-robot text-xl"></i>
-    </button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot Settings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --primary-color: <%= typeof settings !== 'undefined' && settings.theme_color ? settings.theme_color : '#800020' %>; }
+        .bg-primary { background-color: var(--primary-color); }
+        .text-primary { color: var(--primary-color); }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans flex min-h-screen">
+    <aside class="w-64 bg-gray-900 text-white p-6 flex flex-col justify-between">
+        <div>
+            <h2 class="text-xl font-bold mb-8 tracking-wider">SARAE ADMIN</h2>
+            <nav class="space-y-3 font-medium">
+                <a href="/admin/dashboard" class="block py-2.5 px-4 rounded-lg hover:bg-gray-800 text-gray-300"><i class="fa fa-home mr-3"></i> Dashboard</a>
+                <a href="/admin/products" class="block py-2.5 px-4 rounded-lg hover:bg-gray-800 text-gray-300"><i class="fa fa-box mr-3"></i> Products</a>
+                <a href="/admin/orders" class="block py-2.5 px-4 rounded-lg hover:bg-gray-800 text-gray-300"><i class="fa fa-shopping-cart mr-3"></i> Orders</a>
+                <a href="/admin/settings" class="block py-2.5 px-4 rounded-lg hover:bg-gray-800 text-gray-300"><i class="fa fa-cogs mr-3"></i> Settings & Logo</a>
+                <a href="/admin/chatbot" class="block py-2.5 px-4 rounded-lg bg-primary text-white"><i class="fa fa-robot mr-3"></i> AI Chatbot</a>
+                <a href="/admin/password" class="block py-2.5 px-4 rounded-lg hover:bg-gray-800 text-gray-300"><i class="fa fa-key mr-3"></i> Change Password</a>
+            </nav>
+        </div>
+        <div>
+            <a href="/admin/logout" class="block py-2 px-4 text-red-400 hover:bg-gray-800 rounded-lg"><i class="fa fa-sign-out-alt mr-3"></i> Logout</a>
+        </div>
+    </aside>
 
-    <div id="chat-box" class="hidden absolute bottom-16 right-0 w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col">
-        <div class="bg-primary text-white p-4 flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <i class="fa fa-robot"></i>
-                <span class="font-bold">AI Saree Assistant</span>
+    <main class="flex-1 p-8 overflow-y-auto">
+        <h1 class="text-3xl font-bold mb-8">AI Chatbot Settings</h1>
+        <% if(typeof message !== 'undefined' && message) { %>
+            <div class="bg-green-50 text-green-700 p-4 rounded-xl mb-6"><%= message %></div>
+        <% } %>
+        <form action="/admin/chatbot" method="POST" class="bg-white p-8 rounded-2xl shadow-sm border space-y-6 max-w-2xl">
+            <div>
+                <label class="block text-sm font-bold mb-1">Chatbot Order Instructions Prompt</label>
+                <textarea name="chat_order_prompt" rows="5" required class="w-full border rounded-lg px-3 py-2 text-sm"><%= settings.chat_order_prompt || '' %></textarea>
+                <p class="text-xs text-gray-500 mt-1">এই প্রম্পটটি দিয়ে এআই চ্যাটবট নিয়ন্ত্রণ করা হয়, কাস্টমার অর্ডার করার সময় কীভাবে কথা বলবে বা গাইড করবে তা এখানে সেট করুন।</p>
             </div>
-            <button onclick="toggleChat()" class="text-white hover:text-gray-200"><i class="fa fa-times"></i></button>
-        </div>
-
-        <div id="chat-messages" class="p-4 h-72 overflow-y-auto space-y-3 text-sm bg-gray-50 flex flex-col">
-            <div class="bg-white p-3 rounded-xl shadow-sm self-start max-w-[85%] border border-gray-100">
-                Namaste! Welcome to <strong><%= settings.store_name %></strong>. How can I help you select the perfect saree today?
+            <div>
+                <label class="block text-sm font-bold mb-1">Delivery Time Info (Chatbot Response)</label>
+                <input type="text" name="delivery_time" value="<%= settings.delivery_time || '' %>" required class="w-full border rounded-lg px-3 py-2 text-sm">
             </div>
-        </div>
-
-        <div class="p-2 bg-white border-t border-gray-200 flex flex-wrap gap-1">
-            <button onclick="sendQuickOption('delivery')" class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-full">Delivery Info</button>
-            <button onclick="sendQuickOption('info')" class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-full">Store Details</button>
-            <button onclick="sendQuickOption('order')" class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-full">Place Order</button>
-        </div>
-
-        <div class="p-3 bg-white border-t border-gray-200 flex items-center space-x-2">
-            <input type="text" id="chat-input" placeholder="Type a message or upload image..." class="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
-            <label class="cursor-pointer text-gray-500 hover:text-primary p-2">
-                <i class="fa fa-camera"></i>
-                <input type="file" id="ai-image-upload" class="hidden" accept="image/*" onchange="handleAiImageUpload(event)">
-            </label>
-            <button onclick="sendUserMessage()" class="bg-primary text-white px-4 py-2 rounded-lg text-sm"><i class="fa fa-paper-plane"></i></button>
-        </div>
-    </div>
-</div>
-
-<script>
-function toggleChat() {
-    const box = document.getElementById('chat-box');
-    box.classList.toggle('hidden');
-}
-
-function appendMsg(sender, text) {
-    const container = document.getElementById('chat-messages');
-    const div = document.createElement('div');
-    div.className = sender === 'user' ? 'bg-primary text-white p-3 rounded-xl shadow-sm self-end max-w-[85%]' : 'bg-white p-3 rounded-xl shadow-sm self-start max-w-[85%] border border-gray-100';
-    div.innerHTML = text;
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-}
-
-function sendQuickOption(type) {
-    if(type === 'delivery') {
-        appendMsg('user', 'Tell me about delivery time.');
-        setTimeout(() => appendMsg('bot', '<%= settings.delivery_time %>'), 500);
-    } else if(type === 'info') {
-        appendMsg('user', 'What do you sell?');
-        setTimeout(() => appendMsg('bot', '<%= settings.store_info %>'), 500);
-    } else if(type === 'order') {
-        appendMsg('user', 'How to order now?');
-        setTimeout(() => appendMsg('bot', '<%= settings.chat_order_prompt %>'), 500);
-    }
-}
-
-function sendUserMessage() {
-    const input = document.getElementById('chat-input');
-    if(!input.value.trim()) return;
-    const txt = input.value;
-    appendMsg('user', txt);
-    input.value = '';
-    setTimeout(() => {
-        appendMsg('bot', 'Thank you for your message! Our agent or AI assistant will assist you momentarily, or you can check our catalog to place an order directly.');
-    }, 600);
-}
-
-function handleAiImageUpload(event) {
-    const file = event.target.files[0];
-    if(!file) return;
-    appendMsg('user', `<i class="fa fa-image"></i> Uploaded image for AI matching...`);
-    const formData = new FormData();
-    formData.append('customer_image', file);
-
-    fetch('/api/ai/match', { method: 'POST', body: formData })
+            <button type="submit" class="bg-primary text-white px-6 py-3 rounded-xl font-bold shadow-md">Save Chatbot Settings</button>
+        </form>
+    </main>
+</body>
+</html>
     .then(res => res.json())
     .then(data => {
         let html = 'AI Match found! Check out these similar sarees:<br>';
