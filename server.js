@@ -248,14 +248,20 @@ app.post('/admin/login', async (req, res) => {
 app.get('/admin/logout', (req, res) => {
   req.session.admin = null;
   res.redirect('/admin/login');
+const requireAdmin = (req, res, next) => {
+    if (!req.session || !req.session.admin) {
+        return res.redirect('/admin/login');
+    }
+    next();
+};
+
 app.get('/admin/password', requireAdmin, (req, res) => {
     res.render('admin/password', { message: null });
 });
 
 app.post('/admin/password', requireAdmin, async (req, res) => {
     try {
-        const { current_password, new_password } = req.body;
-        
+        const { new_password } = req.body;
         if (new_password && new_password.trim() !== '') {
             const hashedPassword = await bcrypt.hash(new_password, 10);
             await db.execute({
@@ -263,20 +269,13 @@ app.post('/admin/password', requireAdmin, async (req, res) => {
                 args: [hashedPassword]
             });
         }
-
         res.render('admin/password', { message: 'Password updated successfully!' });
     } catch (err) {
         console.error(err);
         res.render('admin/password', { message: 'Failed to update password' });
     }
 });
-
-});
-
-const requireAdmin = (req, res, next) => {
-  if (!req.session.admin) return res.redirect('/admin/login');
-  next();
-};
+  
 
 app.get('/admin/settings', requireAdmin, async (req, res) => {
     try {
