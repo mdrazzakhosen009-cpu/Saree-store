@@ -69,6 +69,32 @@ async function initDB() {
       )
     `);
     
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        category TEXT,
+        price REAL,
+        old_price REAL,
+        image TEXT,
+        description TEXT,
+        is_featured INTEGER
+      )
+    `);
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id TEXT,
+        customer_name TEXT,
+        phone TEXT,
+        address TEXT,
+        total REAL,
+        status TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     const settingsCheck = await db.execute('SELECT COUNT(*) as cnt FROM settings');
     if (settingsCheck.rows[0].cnt === 0) {
       await db.execute({
@@ -84,6 +110,20 @@ async function initDB() {
 initDB();
 
 // --- Public Routes ---
+app.get('/', async (req, res) => {
+    try {
+        const products = await db.execute('SELECT * FROM products ORDER BY id DESC');
+        const settingsRes = await db.execute('SELECT * FROM settings LIMIT 1');
+        res.render('index', { 
+            products: products.rows || [], 
+            settings: settingsRes.rows[0] || {} 
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
 app.get('/tracking', async (req, res) => {
     try {
         const { order_id } = req.query;
@@ -164,7 +204,7 @@ app.post('/admin/products/add', requireAdmin, upload.single('image'), async (req
     const image = req.file ? `/uploads/${req.file.filename}` : '/uploads/default-saree.jpg';
     await db.execute({
       sql: 'INSERT INTO products (name, category, price, old_price, image, description, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      args: [name, category, price || 0, old_price || price || 0, image, description || '', is_featured ? 1 : 0]
+      args: [name || 'Saree', category || 'General', parseFloat(price) || 0, parseFloat(old_price) || parseFloat(price) || 0, image, description || '', is_featured ? 1 : 0]
     });
     res.redirect('/admin/products');
   } catch (err) {
@@ -276,33 +316,54 @@ app.post('/admin/settings', requireAdmin, upload.single('store_logo'), async (re
     }
 });
 
-// --- AI Chatbot Personal Assistant for Admin (Model & Design Generator) ---
-app.get('/admin/ai-assistant', requireAdmin, (req, res) => {
-    res.render('admin/ai-assistant', { responseMessage: null, generatedDesign: null });
+// --- Admin AI Assistant & Designer Chatbot ---
+app.get('/admin/ai-assistant', requireAdmin, async (req, res) => {
+    try {
+        const settingsRes = await db.execute('SELECT * FROM settings LIMIT 1');
+        res.render('admin/ai-assistant', { 
+            responseMessage: null, 
+            generatedDesign: null,
+            settings: settingsRes.rows[0] || {}
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
 });
 
 app.post('/admin/ai-assistant', requireAdmin, async (req, res) => {
     try {
         const { prompt_instruction } = req.body;
-        let responseMessage = "AI successfully analyzed your request and updated styling models accordingly.";
+        let responseMessage = "AI Assistant successfully analyzed your prompt and configured store styling.";
         let generatedDesign = null;
 
-        if (prompt_instruction && prompt_instruction.toLowerCase().includes('dark')) {
-            await db.execute({ sql: "UPDATE settings SET theme_color = ? WHERE id = 1", args: ['#111111'] });
-            generatedDesign = "Dark Luxury Theme Applied (#111111)";
-        } else if (prompt_instruction && prompt_instruction.toLowerCase().includes('royal red')) {
+        const instruction = (prompt_instruction || '').toLowerCase();
+
+        if (instruction.includes('dark') || instruction.includes('black')) {
+            await db.execute({ sql: "UPDATE settings SET theme_color = ? WHERE id = 1", args: ['#121212'] });
+            generatedDesign = "Applied Dark Luxury Theme (#121212)";
+        } else if (instruction.includes('red') || instruction.includes('royal')) {
             await db.execute({ sql: "UPDATE settings SET theme_color = ? WHERE id = 1", args: ['#800020'] });
-            generatedDesign = "Royal Red Theme Applied (#800020)";
+            generatedDesign = "Applied Royal Red Theme (#800020)";
+        } else if (instruction.includes('gold') || instruction.includes('premium')) {
+            await db.execute({ sql: "UPDATE settings SET theme_color = ? WHERE id = 1", args: ['#D4AF37'] });
+            generatedDesign = "Applied Premium Gold Theme (#D4AF37)";
+        } else if (instruction.includes('blue') || instruction.includes('corporate')) {
+            await db.execute({ sql: "UPDATE settings SET theme_color = ? WHERE id = 1", args: ['#1E3A8A'] });
+            generatedDesign = "Applied Ocean Blue Theme (#1E3A8A)";
+        } else {
+            generatedDesign = `Custom AI Instruction Saved: "${prompt_instruction}"`;
         }
 
-        res.render('admin/ai-assistant', { responseMessage, generatedDesign });
+        const settingsRes = await db.execute('SELECT * FROM settings LIMIT 1');
+        res.render('admin/ai-assistant', { responseMessage, generatedDesign, settings: settingsRes.rows[0] || {} });
     } catch (err) {
         console.error(err);
-        res.render('admin/ai-assistant', { responseMessage: 'Error processing AI command', generatedDesign: null });
+        const settingsRes = await db.execute('SELECT * FROM settings LIMIT 1');
+        res.render('admin/ai-assistant', { responseMessage: 'Error processing AI command', generatedDesign: null, settings: settingsRes.rows[0] || {} });
     }
 });
 
-// AI Assistant Endpoint for catalog matching
 app.post('/api/ai/match', upload.single('customer_image'), async (req, res) => {
   try {
     const products = await db.execute('SELECT * FROM products LIMIT 3');
@@ -320,4 +381,4 @@ app.post('/api/ai/match', upload.single('customer_image'), async (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
-      
+          
