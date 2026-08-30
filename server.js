@@ -221,8 +221,7 @@ app.get('/track', async (req, res) => {
   res.render('tracking', { order, success: false });
 });
 
-app.get('/admin/settings', requireAdmin, (req, res) => {
-    res.render('admin/settings');
+
 });
 // --- Admin Routes ---
 
@@ -255,7 +254,10 @@ app.get('/admin/logout', (req, res) => {
 const requireAdmin = (req, res, next) => {
   if (!req.session.admin) return res.redirect('/admin/login');
   next();
-};
+};app.get('/admin/settings', requireAdmin, (req, res) => {
+    res.render('admin/settings');
+});
+          
 
 app.get('/admin/dashboard', requireAdmin, async (req, res) => {
   const revenueRes = await db.execute('SELECT SUM(total) as rev FROM orders');
