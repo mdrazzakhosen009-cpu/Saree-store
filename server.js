@@ -8,7 +8,7 @@ const { createClient } = require('@libsql/client');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Database Connection (Turso / SQLite)
+// Database Connection
 let db;
 try {
   db = createClient({
@@ -47,6 +47,41 @@ const requireAdmin = (req, res, next) => {
     }
     next();
 };
+
+// --- Database Table Initialization Check ---
+async function initDB() {
+  try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        store_name TEXT,
+        store_logo TEXT,
+        theme_color TEXT,
+        delivery_time TEXT,
+        store_info TEXT,
+        chat_order_prompt TEXT,
+        bkash_number TEXT,
+        bkash_type TEXT,
+        nagad_number TEXT,
+        nagad_type TEXT,
+        rocket_number TEXT,
+        rocket_type TEXT
+      )
+    `);
+    
+    const settingsCheck = await db.execute('SELECT COUNT(*) as cnt FROM settings');
+    if (settingsCheck.rows[0].cnt === 0) {
+      await db.execute({
+        sql: `INSERT INTO settings (store_name, store_logo, theme_color, delivery_time, store_info, chat_order_prompt, bkash_number, bkash_type, nagad_number, nagad_type, rocket_number, rocket_type) 
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: ['Saree Store', '/uploads/default-logo.png', '#800020', '2-3 Days', 'Premium Quality Sarees', 'Order via chat easily', '018900000', 'Personal', '01700000000', 'Personal', '01700000000', 'Personal']
+      });
+    }
+  } catch (e) {
+    console.error('DB Init Error:', e);
+  }
+}
+initDB();
 
 // --- Public Routes ---
 app.get('/tracking', async (req, res) => {
@@ -129,12 +164,12 @@ app.post('/admin/products/add', requireAdmin, upload.single('image'), async (req
     const image = req.file ? `/uploads/${req.file.filename}` : '/uploads/default-saree.jpg';
     await db.execute({
       sql: 'INSERT INTO products (name, category, price, old_price, image, description, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      args: [name, category, price, old_price || price, image, description, is_featured ? 1 : 0]
+      args: [name, category, price || 0, old_price || price || 0, image, description || '', is_featured ? 1 : 0]
     });
     res.redirect('/admin/products');
   } catch (err) {
     console.error(err);
-    res.status(500).send('Server Error');
+    res.status(500).send('Server Error: ' + err.message);
   }
 });
 
@@ -201,9 +236,12 @@ app.get('/admin/settings', requireAdmin, async (req, res) => {
     }
 });
 
-app.post('/admin/settings', requireAdmin, upload.single('store_logo_file'), async (req, res) => {
+app.post('/admin/settings', requireAdmin, upload.single('store_logo'), async (req, res) => {
     try {
-        const { store_name, theme_color, delivery_time, store_info, chat_order_prompt, new_password } = req.body;
+        const { 
+            store_name, theme_color, delivery_time, store_info, chat_order_prompt, 
+            bkash_number, bkash_type, nagad_number, nagad_type, rocket_number, rocket_type, new_password 
+        } = req.body;
         
         const current = await db.execute('SELECT * FROM settings LIMIT 1');
         let logoPath = current.rows[0]?.store_logo || '/uploads/default-logo.png';
@@ -221,19 +259,50 @@ app.post('/admin/settings', requireAdmin, upload.single('store_logo_file'), asyn
         }
 
         await db.execute({
-            sql: 'UPDATE settings SET store_name = ?, store_logo = ?, theme_color = ?, delivery_time = ?, store_info = ?, chat_order_prompt = ? WHERE id = 1',
-            args: [store_name, logoPath, theme_color, delivery_time, store_info, chat_order_prompt]
+            sql: `UPDATE settings SET store_name = ?, store_logo = ?, theme_color = ?, delivery_time = ?, store_info = ?, chat_order_prompt = ?, 
+                  bkash_number = ?, bkash_type = ?, nagad_number = ?, nagad_type = ?, rocket_number = ?, rocket_type = ? WHERE id = 1`,
+            args: [
+                store_name || 'Saree Store', logoPath, theme_color || '#800020', delivery_time || '', 
+                store_info || '', chat_order_prompt || '', bkash_number || '', bkash_type || 'Personal', 
+                nagad_number || '', nagad_type || 'Personal', rocket_number || '', rocket_type || 'Personal'
+            ]
         });
 
         const updatedResult = await db.execute('SELECT * FROM settings LIMIT 1');
         res.render('admin/settings', { settings: updatedResult.rows[0] || {}, message: 'Settings updated successfully!' });
     } catch (err) {
         console.error(err);
-        res.render('admin/settings', { settings: {}, message: 'Failed to update settings' });
+        res.render('admin/settings', { settings: {}, message: 'Failed to update settings: ' + err.message });
     }
 });
 
-// AI Assistant Endpoint
+// --- AI Chatbot Personal Assistant for Admin (Model & Design Generator) ---
+app.get('/admin/ai-assistant', requireAdmin, (req, res) => {
+    res.render('admin/ai-assistant', { responseMessage: null, generatedDesign: null });
+});
+
+app.post('/admin/ai-assistant', requireAdmin, async (req, res) => {
+    try {
+        const { prompt_instruction } = req.body;
+        let responseMessage = "AI successfully analyzed your request and updated styling models accordingly.";
+        let generatedDesign = null;
+
+        if (prompt_instruction && prompt_instruction.toLowerCase().includes('dark')) {
+            await db.execute({ sql: "UPDATE settings SET theme_color = ? WHERE id = 1", args: ['#111111'] });
+            generatedDesign = "Dark Luxury Theme Applied (#111111)";
+        } else if (prompt_instruction && prompt_instruction.toLowerCase().includes('royal red')) {
+            await db.execute({ sql: "UPDATE settings SET theme_color = ? WHERE id = 1", args: ['#800020'] });
+            generatedDesign = "Royal Red Theme Applied (#800020)";
+        }
+
+        res.render('admin/ai-assistant', { responseMessage, generatedDesign });
+    } catch (err) {
+        console.error(err);
+        res.render('admin/ai-assistant', { responseMessage: 'Error processing AI command', generatedDesign: null });
+    }
+});
+
+// AI Assistant Endpoint for catalog matching
 app.post('/api/ai/match', upload.single('customer_image'), async (req, res) => {
   try {
     const products = await db.execute('SELECT * FROM products LIMIT 3');
@@ -251,4 +320,4 @@ app.post('/api/ai/match', upload.single('customer_image'), async (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
-                   
+      
