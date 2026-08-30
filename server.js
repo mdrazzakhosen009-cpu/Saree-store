@@ -110,6 +110,7 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
 });
 
 app.post('/admin/products/add', requireAdmin, upload.single('image'), async (req, res) => {
+
     try {
         const { name, category, price, old_price, description, is_featured } = req.body;
         const image = req.file ? `/uploads/${req.file.filename}` : '/uploads/default.jpg';
@@ -126,7 +127,6 @@ app.post('/admin/products/add', requireAdmin, upload.single('image'), async (req
     }
 });
 
-});
 
 app.post('/admin/products/delete/:id', requireAdmin, async (req, res) => {
   await db.execute({ sql: 'DELETE FROM products WHERE id = ?', args: [req.params.id] });
