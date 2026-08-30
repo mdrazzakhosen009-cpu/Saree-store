@@ -221,6 +221,9 @@ app.get('/track', async (req, res) => {
   res.render('tracking', { order, success: false });
 });
 
+app.get('/admin/settings', requireAdmin, (req, res) => {
+    res.render('admin/settings');
+});
 // --- Admin Routes ---
 
 app.get('/admin/login', (req, res) => {
