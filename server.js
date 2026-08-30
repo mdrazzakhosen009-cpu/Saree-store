@@ -235,7 +235,7 @@ app.get('/admin/password', requireAdmin, (req, res) => {
 });
 
 app.post('/admin/password', requireAdmin, async (req, res) => {
-        try {
+    try {
         const new_password = req.body.new_password || req.body.password;
         if (new_password && new_password.trim() !== '') {
             const hashedPassword = await bcrypt.hash(new_password, 10);
@@ -243,8 +243,6 @@ app.post('/admin/password', requireAdmin, async (req, res) => {
                 sql: 'UPDATE admin SET password = ? WHERE id = 1',
                 args: [hashedPassword]
             });
-        }
-          
         }
         res.render('admin/password', { message: 'Password updated successfully!' });
     } catch (err) {
