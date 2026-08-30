@@ -254,9 +254,34 @@ const requireAdmin = (req, res, next) => {
   if (!req.session.admin) return res.redirect('/admin/login');
   next();
 };
-app.get('/admin/settings', requireAdmin, (req, res) => {
-    res.render('admin/settings');
+
+app.get('/admin/settings', requireAdmin, async (req, res) => {
+    try {
+        const result = await db.execute('SELECT * FROM settings LIMIT 1');
+        const settings = result.rows[0] || {};
+        res.render('admin/settings', { settings, message: null });
+    } catch (err) {
+        console.error(err);
+        res.render('admin/settings', { settings: {}, message: 'Error loading settings' });
+    }
 });
+
+app.post('/admin/settings', requireAdmin, async (req, res) => {
+    try {
+        const { store_name, theme_color, delivery_time, store_info, chat_order_prompt } = req.body;
+        
+        await db.execute({
+            sql: 'UPDATE settings SET store_name = ?, theme_color = ?, delivery_time = ?, store_info = ?, chat_order_prompt = ? WHERE id = 1',
+            args: [store_name, theme_color, delivery_time, store_info, chat_order_prompt]
+        });
+
+        res.render('admin/settings', { settings: req.body, message: 'Settings updated successfully!' });
+    } catch (err) {
+        console.error(err);
+        res.render('admin/settings', { settings: req.body, message: 'Failed to update settings' });
+    }
+});
+
           
 
 app.get('/admin/dashboard', requireAdmin, async (req, res) => {
