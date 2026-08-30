@@ -73,10 +73,12 @@ initDB();
 
 app.get('/', async (req, res) => {
     try {
-        const products = await db.execute('SELECT * FROM products ORDER BY id DESC');
-        const settings = await db.execute('SELECT * FROM settings LIMIT 1');
-        res.render('index', { products: products.rows || [], settings: settings.rows[0] || {} });
-    } catch (err) { res.status(500).send('Server Error'); }
+        const productsResult = await db.execute('SELECT * FROM products ORDER BY id DESC LIMIT 8');
+        res.render('index', { featured: productsResult.rows || [] });
+    } catch (err) {
+        console.error(err);
+        res.render('index', { featured: [] });
+    }
 });
 
 app.get('/admin/login', (req, res) => res.render('admin/login', { error: null }));
