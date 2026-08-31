@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans flex">
+    <aside class="w-64 bg-gray-900 text-white min-h-screen p-6 flex flex-col justify-between">
+        <div>
+            <h2 class="text-xl font-bold mb-8 tracking-wider">SARAE ADMIN</h2>
+            <nav class="space-y-3 font-medium">
+                <a href="/admin/dashboard" class="block py-2.5 px-4 rounded-lg bg-rose-900 text-white"><i class="fa fa-home mr-3"></i> Dashboard</a>
+                <a href="/admin/products" class="block py-2.5 px-4 rounded-lg hover:bg-gray-800 text-gray-300"><i class="fa fa-box mr-3"></i> Products</a>
+                <a href="/admin/orders" class="block py-2.5 px-4 rounded-lg hover:bg-gray-800 text-gray-300"><i class="fa fa-shopping-cart mr-3"></i> Orders</a>
+                <a href="/admin/settings" class="block py-2.5 px-4 rounded-lg hover:bg-gray-800 text-gray-300"><i class="fa fa-cogs mr-3"></i> Settings & Logo</a>
+            <a href="/admin/password" class="block py-2.5 px-4 rounded-lg hover:bg-gray-800 text-gray-300"><i class="fa fa-key mr-3"></i> Change Password</a></nav>
+        </div>
+        <div>
+            <a href="/admin/logout" class="block py-2 px-4 text-red-400 hover:bg-gray-800 rounded-lg"><i class="fa fa-sign-out-alt mr-3"></i> Logout</a>
+        </div>
+    </aside>
+
+    <main class="flex-1 p-8 overflow-y-auto">
+        <h1 class="text-3xl font-bold mb-8">Dashboard Overview</h1>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border">
+                <div class="text-gray-500 text-sm font-bold">Total Revenue</div>
+                <div class="text-3xl font-extrabold text-rose-900 mt-2">৳<%= revenue %></div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border">
+                <div class="text-gray-500 text-sm font-bold">Total Orders</div>
+                <div class="text-3xl font-extrabold text-rose-900 mt-2"><%= ordersCount %></div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border">
+                <div class="text-gray-500 text-sm font-bold">Total Products</div>
+                <div class="text-3xl font-extrabold text-rose-900 mt-2"><%= productsCount %></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border p-6">
+            <h3 class="text-lg font-bold mb-4">Recent Orders</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="border-b bg-gray-50">
+                            <th class="p-3">Order ID</th>
+                            <th class="p-3">Customer</th>
+                            <th class="p-3">Total</th>
+                            <th class="p-3">Payment</th>
+                            <th class="p-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% recentOrders.forEach(order => { %>
+                            <tr class="border-b">
+                                <td class="p-3 font-bold"><%= order.order_id %></td>
+                                <td class="p-3"><%= order.customer_name %></td>
+                                <td class="p-3">৳<%= order.total %></td>
+                                <td class="p-3"><%= order.payment_method %></td>
+                                <td class="p-3"><span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-bold"><%= order.status %></span></td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
