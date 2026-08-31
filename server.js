@@ -266,6 +266,7 @@ app.get('/admin/dashboard', requireAdmin, async (req, res) => {
     productsCount: productsCount.rows[0].cnt || 0,
     recentOrders: recentOrders.rows
   });
+  
 });
 // --- Personal AI Assistant & Agent Routes ---
 
