@@ -95,6 +95,12 @@ async function initDB() {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 
+        await db.execute(`CREATE TABLE IF NOT EXISTS admin (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            password TEXT
+        )`);
+
         const columns = [
             "is_featured INTEGER DEFAULT 0",
             "chat_order_prompt TEXT",
@@ -117,11 +123,20 @@ async function initDB() {
             try { await db.execute(`ALTER TABLE products ADD COLUMN ${col}`); } catch (e) {}
         }
 
-        const check = await db.execute('SELECT COUNT(*) as cnt FROM settings');
-        if (check.rows[0].cnt === 0) {
+        const checkSettings = await db.execute('SELECT COUNT(*) as cnt FROM settings');
+        if (checkSettings.rows[0].cnt === 0) {
             await db.execute({
                 sql: 'INSERT INTO settings (store_name, store_logo, theme_color, delivery_time, chat_order_prompt, bkash_num) VALUES (?, ?, ?, ?, ?, ?)',
                 args: ['Saree Store', '/uploads/default-logo.png', '#800020', '2-3 Days', 'I want to order this product', '01700000000']
+            });
+        }
+
+        const checkAdmin = await db.execute('SELECT COUNT(*) as cnt FROM admin');
+        if (checkAdmin.rows[0].cnt === 0) {
+            const hashedPassword = await bcrypt.hash('admin123', 10);
+            await db.execute({
+                sql: 'INSERT INTO admin (username, password) VALUES (?, ?)',
+                args: ['admin', hashedPassword]
             });
         }
     } catch (e) { 
@@ -251,4 +266,4 @@ app.post('/admin/settings', requireAdmin, upload.single('store_logo'), async (re
 });
 
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
-                   
+                             
