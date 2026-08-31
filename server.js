@@ -322,7 +322,6 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
 
 // --- Admin Products Route ---
 app.get('/admin/products', requireAdmin, async (req, res) => {
-...
         
 app.get('/admin/products', requireAdmin, async (req, res) => {
   const products = await db.execute('SELECT * FROM products ORDER BY id DESC');
