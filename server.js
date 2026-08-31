@@ -273,11 +273,9 @@ app.get('/admin/dashboard', requireAdmin, async (req, res) => {
   });
 });
 
-// Admin AI Assistant Route (Safe Fallback)
+// Admin AI Assistant & Agent Routes
 app.get('/admin/ai-assistant', requireAdmin, async (req, res) => {
-    res.render('admin/ai-assistant', { responseMessage: null, generatedDesign: null }).catch(() => {
-      res.redirect('/admin/dashboard');
-    });
+    res.render('admin/ai-assistant', { responseMessage: null, generatedDesign: null });
 });
 
 app.post('/admin/ai-assistant', requireAdmin, async (req, res) => {
@@ -292,14 +290,15 @@ app.post('/admin/ai-assistant', requireAdmin, async (req, res) => {
 
     await db.execute({ sql: 'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', args: ['theme_color', color] });
 
-    res.render('admin/ai-assistant', { responseMessage: msg, generatedDesign: 'Theme updated to ' + color }).catch(() => {
-      res.redirect('/admin/dashboard');
-    });
+    res.render('admin/ai-assistant', { responseMessage: msg, generatedDesign: 'Theme updated to ' + color });
+});
+// Fix for /admin/logo-design and /admin/ai-agent to prevent 404/500 errors
+app.get('/admin/logo-design', requireAdmin, (req, res) => {
+    res.render('admin/ai-assistant', { responseMessage: null, generatedDesign: null });
 });
 
-// Redirect missing ai-agent to dashboard to prevent crashes
 app.get('/admin/ai-agent', requireAdmin, (req, res) => {
-    res.redirect('/admin/dashboard');
+    res.render('admin/ai-assistant', { responseMessage: null, generatedDesign: null });
 });
 
 // --- Admin Products Route ---
