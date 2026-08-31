@@ -106,7 +106,7 @@ async function initDb() {
   // Default Admin Check
   const checkAdmin = await db.execute('SELECT * FROM admin WHERE username = ?', ['admin']);
   if (checkAdmin.rows.length === 0) {
-    const hashed = await bcrypt.hash(process.env.ADMIN_SECRET_FALLBACK_PASSWORD || 'admin123', 10);
+    const hashed = await bcrypt.hash('admin123', 10);
     await db.execute({ sql: 'INSERT INTO admin (username, password) VALUES (?, ?)', args: ['admin', hashed] });
   }
 }
@@ -131,6 +131,7 @@ app.use(async (req, res, next) => {
   }
   next();
 });
+
 // --- Frontend Routes ---
 
 app.get('/', async (req, res) => {
@@ -226,7 +227,7 @@ app.get('/track', async (req, res) => {
   res.render('tracking', { order, success: false });
 });
 
-// --- Admin Routes ---
+// --- Admin Authentication Routes ---
 
 app.get('/admin/login', (req, res) => {
   res.render('admin/login', { error: null });
@@ -259,6 +260,8 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+// --- Admin Panel Core Routes ---
+
 app.get('/admin/dashboard', requireAdmin, async (req, res) => {
   const revenueRes = await db.execute('SELECT SUM(total) as rev FROM orders');
   const ordersCount = await db.execute('SELECT COUNT(*) as cnt FROM orders');
@@ -273,35 +276,6 @@ app.get('/admin/dashboard', requireAdmin, async (req, res) => {
   });
 });
 
-// Admin AI Assistant & Agent Routes
-app.get('/admin/ai-assistant', requireAdmin, async (req, res) => {
-    res.render('admin/ai-assistant', { responseMessage: null, generatedDesign: null });
-});
-
-app.post('/admin/ai-assistant', requireAdmin, async (req, res) => {
-    const { prompt_instruction } = req.body;
-    const instruction = (prompt_instruction || '').toLowerCase();
-    let color = '#800020';
-    let msg = "AI Custom instruction applied successfully.";
-
-    if (instruction.includes('dark')) color = '#121212';
-    else if (instruction.includes('gold')) color = '#D4AF37';
-    else if (instruction.includes('blue')) color = '#1E3A8A';
-
-    await db.execute({ sql: 'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', args: ['theme_color', color] });
-
-    res.render('admin/ai-assistant', { responseMessage: msg, generatedDesign: 'Theme updated to ' + color });
-});
-// Fix for /admin/logo-design and /admin/ai-agent to prevent 404/500 errors
-app.get('/admin/logo-design', requireAdmin, (req, res) => {
-    res.render('admin/ai-assistant', { responseMessage: null, generatedDesign: null });
-});
-
-app.get('/admin/ai-agent', requireAdmin, (req, res) => {
-    res.render('admin/ai-assistant', { responseMessage: null, generatedDesign: null });
-});
-
-// --- Admin Products Route ---
 app.get('/admin/products', requireAdmin, async (req, res) => {
   const products = await db.execute('SELECT * FROM products ORDER BY id DESC');
   res.render('admin/products', { products: products.rows });
@@ -365,7 +339,7 @@ app.post('/admin/settings', requireAdmin, upload.single('store_logo_file'), asyn
   res.render('admin/settings', { message: 'Settings successfully updated!' });
 });
 
-// AI Assistant Endpoint for image match / info
+// AI Customer Matching API (Public frontend helper)
 app.post('/api/ai/match', upload.single('customer_image'), async (req, res) => {
   const products = await db.execute('SELECT * FROM products LIMIT 3');
   res.json({
