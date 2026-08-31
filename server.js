@@ -97,7 +97,6 @@ async function initDb() {
   }
 
   // Default Admin Check
-  const adminRes = await db.execute('SELECT * FROM products LIMIT 1'); // Just checking schema readiness
   const checkAdmin = await db.execute('SELECT * FROM admin WHERE username = ?', ['admin']);
   if (checkAdmin.rows.length === 0) {
     const hashed = await bcrypt.hash(process.env.ADMIN_SECRET_FALLBACK_PASSWORD || 'admin123', 10);
@@ -125,7 +124,6 @@ app.use(async (req, res, next) => {
   }
   next();
 });
-
 // --- Frontend Routes ---
 
 app.get('/', async (req, res) => {
@@ -266,7 +264,6 @@ app.get('/admin/dashboard', requireAdmin, async (req, res) => {
     productsCount: productsCount.rows[0].cnt || 0,
     recentOrders: recentOrders.rows
   });
-  
 });
 // --- Personal AI Assistant & Agent Routes ---
 
@@ -292,37 +289,8 @@ app.post('/admin/ai-assistant', requireAdmin, async (req, res) => {
 app.get('/admin/ai-agent', requireAdmin, async (req, res) => {
     res.render('admin/ai-agent', { message: null });
 });
-// --- Personal AI Assistant & Agent Admin Routes ---
-
-app.get('/admin/ai-assistant', requireAdmin, async (req, res) => {
-    res.render('admin/ai-assistant', { responseMessage: null, generatedDesign: null });
-});
-
-app.post('/admin/ai-assistant', requireAdmin, async (req, res) => {
-    const { prompt_instruction } = req.body;
-    const instruction = (prompt_instruction || '').toLowerCase();
-    let color = '#800020';
-    let msg = "AI Custom instruction applied successfully.";
-
-    if (instruction.includes('dark')) color = '#121212';
-    else if (instruction.includes('gold')) color = '#D4AF37';
-    else if (instruction.includes('blue')) color = '#1E3A8A';
-
-    await db.execute({ sql: 'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', args: ['theme_color', color] });
-
-    res.render('admin/ai-assistant', { responseMessage: msg, generatedDesign: 'Theme updated to ' + color });
-});
-
-app.get('/admin/ai-agent', requireAdmin, async (req, res) => {
-    res.render('admin/ai-agent', { message: null });
-});
 
 // --- Admin Products Route ---
-app.get('/admin/products', requireAdmin, async (req, res) => {
-
-// --- Admin Products Route ---
-app.get('/admin/products', requireAdmin, async (req, res) => {
-        
 app.get('/admin/products', requireAdmin, async (req, res) => {
   const products = await db.execute('SELECT * FROM products ORDER BY id DESC');
   res.render('admin/products', { products: products.rows });
@@ -400,4 +368,3 @@ app.post('/api/ai/match', upload.single('customer_image'), async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-    
