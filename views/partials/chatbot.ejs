@@ -1,0 +1,133 @@
+<!-- AI Shopping Agent Floating Widget -->
+<div id="ai-chat-widget" class="fixed bottom-5 right-5 z-50">
+  <button onclick="toggleChat()" aria-label="Open Saree Shopping Agent" class="bg-primary text-white p-4 rounded-full shadow-2xl hover:opacity-95 transition flex items-center justify-center">
+    <i class="fa fa-robot text-xl"></i>
+  </button>
+
+  <div id="chat-box" class="hidden absolute bottom-16 right-0 w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col">
+    <div class="bg-primary text-white p-4 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-robot"></i>
+        <div>
+          <div class="font-bold">Saree Shopping Agent</div>
+          <div class="text-[11px] opacity-80">Live catalog assistant</div>
+        </div>
+      </div>
+      <button onclick="toggleChat()" class="text-white hover:text-gray-200" aria-label="Close"><i class="fa fa-times"></i></button>
+    </div>
+
+    <div id="chat-messages" class="p-4 h-72 overflow-y-auto space-y-3 text-sm bg-gray-50 flex flex-col">
+      <div class="bg-white p-3 rounded-xl shadow-sm self-start max-w-[85%] border border-gray-100">
+        Hello! I'm your shopping agent. Ask me about <strong>products, prices, delivery, recommendations</strong>, or send an order ID to track it.
+      </div>
+    </div>
+
+    <div class="p-2 bg-white border-t border-gray-200 flex flex-wrap gap-1">
+      <button onclick="sendQuickOption('delivery')" class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-full">Delivery</button>
+      <button onclick="sendQuickOption('recommend')" class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-full">Recommend</button>
+      <button onclick="sendQuickOption('order')" class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-full">How to Order</button>
+    </div>
+
+    <div class="p-3 bg-white border-t border-gray-200 flex items-center space-x-2">
+      <input type="text" id="chat-input" placeholder="Ask your shopping agent..." class="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" onkeydown="if(event.key==='Enter') sendUserMessage()">
+      <label class="cursor-pointer text-gray-500 hover:text-primary p-2" title="Upload image">
+        <i class="fa fa-camera"></i>
+        <input type="file" id="ai-image-upload" class="hidden" accept="image/*" onchange="handleAiImageUpload(event)">
+      </label>
+      <button onclick="sendUserMessage()" class="bg-primary text-white px-4 py-2 rounded-lg text-sm"><i class="fa fa-paper-plane"></i></button>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleChat() {
+  document.getElementById('chat-box').classList.toggle('hidden');
+}
+
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = String(value ?? '');
+  return div.innerHTML;
+}
+
+function appendMsg(sender, text, allowHtml = false) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = sender === 'user'
+    ? 'bg-primary text-white p-3 rounded-xl shadow-sm self-end max-w-[85%]'
+    : 'bg-white p-3 rounded-xl shadow-sm self-start max-w-[85%] border border-gray-100';
+  div.innerHTML = allowHtml ? text : escapeHtml(text);
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function renderProducts(products) {
+  if (!Array.isArray(products) || !products.length) return '';
+  return '<div class="mt-2 space-y-2">' + products.map(p => {
+    const image = escapeHtml(p.image || '/uploads/default-saree.svg');
+    const name = escapeHtml(p.name);
+    const category = escapeHtml(p.category || 'Saree');
+    const price = Number(p.price || 0).toLocaleString('en-BD', { maximumFractionDigits: 2 });
+    return `<a href="/product/${encodeURIComponent(p.id)}" class="flex items-center gap-2 bg-gray-50 rounded-lg p-2 hover:bg-gray-100">
+      <img src="${image}" class="w-12 h-12 object-cover rounded" alt="">
+      <span><strong>${name}</strong><br><small>${category} · ৳${price}</small></span>
+    </a>`;
+  }).join('') + '</div>';
+}
+
+async function askAgent(message) {
+  appendMsg('user', message);
+  appendMsg('bot', 'Thinking…');
+  const container = document.getElementById('chat-messages');
+  const thinking = container.lastElementChild;
+  try {
+    const response = await fetch('/api/agent/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+    const data = await response.json();
+    thinking.remove();
+    if (!response.ok || !data.success) throw new Error(data.message || 'Agent unavailable');
+    appendMsg('bot', escapeHtml(data.reply) + renderProducts(data.products), true);
+  } catch (error) {
+    thinking.remove();
+    appendMsg('bot', 'Sorry, the shopping agent is temporarily unavailable. Please try again or browse the catalog.');
+  }
+}
+
+function sendQuickOption(type) {
+  const messages = {
+    delivery: 'Tell me about delivery time.',
+    recommend: 'Recommend some sarees for me.',
+    order: 'How can I place an order?'
+  };
+  askAgent(messages[type] || 'Help me choose a saree.');
+}
+
+function sendUserMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  askAgent(text);
+}
+
+async function handleAiImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  appendMsg('user', 'Uploaded an image for saree matching.');
+  const formData = new FormData();
+  formData.append('customer_image', file);
+  try {
+    const response = await fetch('/api/ai/match', { method: 'POST', body: formData });
+    const data = await response.json();
+    if (!data.success) throw new Error();
+    appendMsg('bot', escapeHtml(data.message || 'Here are some similar sarees from our catalog.') + renderProducts(data.matched_products), true);
+  } catch (error) {
+    appendMsg('bot', 'I could not process that image right now. Please try again or describe the saree you want.');
+  } finally {
+    event.target.value = '';
+  }
+}
+</script>
