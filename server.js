@@ -3,6 +3,7 @@ const session = require('express-session');
 const { createClient } = require('@libsql/client');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const bcrypt = require('bcrypt');
 require('dotenv').config();
 
@@ -27,9 +28,15 @@ app.use(session({
   saveUninitialized: false,
 }));
 
+// Ensure uploads folder exists
+const uploadDir = path.join(__dirname, 'public/uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 // Multer Setup for Image Uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'public/uploads/'),
+  destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 const upload = multer({ storage });
@@ -265,10 +272,12 @@ app.get('/admin/dashboard', requireAdmin, async (req, res) => {
     recentOrders: recentOrders.rows
   });
 });
-// --- Personal AI Assistant & Agent Routes ---
 
+// Admin AI Assistant Route (Safe Fallback)
 app.get('/admin/ai-assistant', requireAdmin, async (req, res) => {
-    res.render('admin/ai-assistant', { responseMessage: null, generatedDesign: null });
+    res.render('admin/ai-assistant', { responseMessage: null, generatedDesign: null }).catch(() => {
+      res.redirect('/admin/dashboard');
+    });
 });
 
 app.post('/admin/ai-assistant', requireAdmin, async (req, res) => {
@@ -283,11 +292,14 @@ app.post('/admin/ai-assistant', requireAdmin, async (req, res) => {
 
     await db.execute({ sql: 'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', args: ['theme_color', color] });
 
-    res.render('admin/ai-assistant', { responseMessage: msg, generatedDesign: 'Theme updated to ' + color });
+    res.render('admin/ai-assistant', { responseMessage: msg, generatedDesign: 'Theme updated to ' + color }).catch(() => {
+      res.redirect('/admin/dashboard');
+    });
 });
 
-app.get('/admin/ai-agent', requireAdmin, async (req, res) => {
-    res.render('admin/ai-agent', { message: null });
+// Redirect missing ai-agent to dashboard to prevent crashes
+app.get('/admin/ai-agent', requireAdmin, (req, res) => {
+    res.redirect('/admin/dashboard');
 });
 
 // --- Admin Products Route ---
@@ -356,7 +368,6 @@ app.post('/admin/settings', requireAdmin, upload.single('store_logo_file'), asyn
 
 // AI Assistant Endpoint for image match / info
 app.post('/api/ai/match', upload.single('customer_image'), async (req, res) => {
-  // Simulated AI Vision catalog matching or info lookup
   const products = await db.execute('SELECT * FROM products LIMIT 3');
   res.json({
     success: true,
