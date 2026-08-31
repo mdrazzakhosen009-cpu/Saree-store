@@ -1,7 +1,7 @@
 {
   "name": "premium-saree-store",
   "version": "1.0.0",
-  "description": "Production-ready Saree E-commerce with Turso and Render support",
+  "description": "E-commerce Saree Store",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
